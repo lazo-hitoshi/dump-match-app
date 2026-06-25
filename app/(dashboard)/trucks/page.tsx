@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import { LocationMap } from "@/components/map/location-map-dynamic";
+import { getAppPersona } from "@/lib/auth/persona";
+import { getCurrentUserProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { buildMapMarkers } from "@/lib/map-markers";
 import { truckStatusLabel, yen } from "@/lib/format";
@@ -21,6 +23,8 @@ type TruckRow = {
 };
 
 export default async function TrucksPage() {
+  const profile = await getCurrentUserProfile();
+  const persona = getAppPersona(profile);
   const supabase = await createClient();
   const { data } = await supabase
     .from("trucks")
@@ -35,12 +39,14 @@ export default async function TrucksPage() {
   return (
     <>
       <PageHeader
-        eyebrow="ダンプ"
-        title="空き車両と会社を確認する"
+        eyebrow={persona === "truck" ? "ダンプ会社ポータル" : "ダンプ"}
+        title={persona === "truck" ? "自社の空き車両" : "空き車両と会社を確認する"}
         actions={
-          <Link href="/trucks/new" className="primary-action">
-            ダンプ追加
-          </Link>
+          persona !== "site" ? (
+            <Link href="/trucks/new" className="primary-action">
+              ダンプ追加
+            </Link>
+          ) : undefined
         }
       />
 

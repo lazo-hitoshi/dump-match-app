@@ -3,30 +3,25 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { UserProfile } from "@/types/domain";
-import { isAdminRole } from "@/types/domain";
+import {
+  getAppPersona,
+  getNavItems,
+  getPortalSubtitle,
+  getPortalTitle,
+} from "@/lib/auth/persona";
 import { signOut } from "@/lib/auth/actions";
 
 type SidebarProps = {
   profile: UserProfile | null;
 };
 
-const NAV_ITEMS = [
-  { href: "/dashboard", label: "ダッシュボード", icon: "◆" },
-  { href: "/sites", label: "現場", icon: "●" },
-  { href: "/trucks", label: "ダンプ", icon: "■" },
-  { href: "/match", label: "マッチ候補", icon: "◇" },
-  { href: "/reservations", label: "予約", icon: "▼" },
-  { href: "/companies", label: "会社審査", icon: "▲", adminOnly: true },
-  { href: "/audit-logs", label: "操作履歴", icon: "☰", adminOnly: true },
-  { href: "/notifications", label: "通知", icon: "◎" },
-];
-
 export function Sidebar({ profile }: SidebarProps) {
   const pathname = usePathname();
-  const isAdmin = isAdminRole(profile?.role ?? "viewer");
+  const persona = getAppPersona(profile);
+  const navItems = getNavItems(persona);
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar sidebar--${persona}`}>
       <div className="brand">
         <div className="brand-mark" aria-hidden="true">
           <svg viewBox="0 0 32 32" width="31" height="31" role="img">
@@ -37,13 +32,13 @@ export function Sidebar({ profile }: SidebarProps) {
           </svg>
         </div>
         <div>
-          <p className="eyebrow">DumpLink</p>
-          <h1>配車マッチング</h1>
+          <p className="eyebrow">{getPortalTitle(persona)}</p>
+          <h1>{getPortalSubtitle(persona)}</h1>
         </div>
       </div>
 
       <nav className="nav-stack" aria-label="主要画面">
-        {NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin).map((item) => {
+        {navItems.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
             <Link
@@ -63,7 +58,7 @@ export function Sidebar({ profile }: SidebarProps) {
       <div className="sidebar-note">
         <span className="note-label">ログイン中</span>
         <strong>{profile?.name ?? "ゲスト"}</strong>
-        <span>{profile?.email ?? ""}</span>
+        <span>{profile?.companyName ?? profile?.email ?? ""}</span>
         <form action={signOut} style={{ marginTop: 12 }}>
           <button type="submit" className="ghost-button full-width">
             ログアウト

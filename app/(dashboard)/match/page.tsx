@@ -1,5 +1,8 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { LocationMap } from "@/components/map/location-map-dynamic";
+import { getAppPersona } from "@/lib/auth/persona";
+import { getCurrentUserProfile } from "@/lib/auth/session";
+import { redirect } from "next/navigation";
 import { requestReservation } from "@/lib/actions/reservations";
 import { buildMatchCandidates, type SiteRow, type TruckRow } from "@/lib/match";
 import { buildMapMarkers } from "@/lib/map-markers";
@@ -7,6 +10,10 @@ import { createClient } from "@/lib/supabase/server";
 import { dateLabel, yen } from "@/lib/format";
 
 export default async function MatchPage() {
+  const profile = await getCurrentUserProfile();
+  const persona = getAppPersona(profile);
+  if (persona === "site") redirect("/dashboard");
+
   const supabase = await createClient();
 
   const [{ data: sites }, { data: trucks }, { data: availabilities }, { data: summaries }] =
@@ -61,7 +68,10 @@ export default async function MatchPage() {
 
   return (
     <>
-      <PageHeader eyebrow="マッチング" title="条件に合う候補を探す" />
+      <PageHeader
+        eyebrow={persona === "truck" ? "ダンプ会社ポータル" : "マッチング"}
+        title="条件に合う候補を探す"
+      />
 
       <section className="workspace-grid">
         <section className="panel map-panel">

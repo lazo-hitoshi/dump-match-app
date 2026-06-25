@@ -61,6 +61,39 @@ button {
   background: #f4f8f7;
 }
 
+.sidebar--admin {
+  border-right-color: #b9cac7;
+  background: linear-gradient(180deg, #f4f8f7 0%, #eef4f2 100%);
+}
+
+.sidebar--admin .nav-link.is-active {
+  background: rgba(23, 133, 106, 0.12);
+  border-color: rgba(23, 133, 106, 0.35);
+  color: var(--green-dark);
+}
+
+.sidebar--site {
+  border-right-color: #c5d4e8;
+  background: linear-gradient(180deg, #f5f8fc 0%, #edf2f8 100%);
+}
+
+.sidebar--site .nav-link.is-active {
+  background: rgba(57, 120, 184, 0.12);
+  border-color: rgba(57, 120, 184, 0.35);
+  color: #2a5f94;
+}
+
+.sidebar--truck {
+  border-right-color: #d4c9a8;
+  background: linear-gradient(180deg, #faf8f3 0%, #f3efe6 100%);
+}
+
+.sidebar--truck .nav-link.is-active {
+  background: rgba(245, 184, 71, 0.18);
+  border-color: rgba(196, 140, 40, 0.45);
+  color: #8a5f12;
+}
+
 .brand {
   display: flex;
   align-items: center;

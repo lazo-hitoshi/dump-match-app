@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import { LocationMap } from "@/components/map/location-map-dynamic";
+import { getAppPersona } from "@/lib/auth/persona";
+import { getCurrentUserProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { buildMapMarkers } from "@/lib/map-markers";
 import { dateLabel, yen } from "@/lib/format";
@@ -23,6 +25,8 @@ type SiteRow = {
 };
 
 export default async function SitesPage() {
+  const profile = await getCurrentUserProfile();
+  const persona = getAppPersona(profile);
   const supabase = await createClient();
   const { data: sites } = await supabase
     .from("sites")
@@ -41,12 +45,14 @@ export default async function SitesPage() {
   return (
     <>
       <PageHeader
-        eyebrow="現場"
-        title="募集中の現場を確認する"
+        eyebrow={persona === "truck" ? "ダンプ会社ポータル" : persona === "site" ? "現場会社ポータル" : "現場"}
+        title={persona === "truck" ? "募集中の現場を探す" : "募集中の現場を確認する"}
         actions={
-          <Link href="/sites/new" className="primary-action">
-            現場追加
-          </Link>
+          persona !== "truck" ? (
+            <Link href="/sites/new" className="primary-action">
+              現場追加
+            </Link>
+          ) : undefined
         }
       />
 

@@ -18,6 +18,8 @@ export type Company = {
 export type UserProfile = {
   id: string;
   companyId: string;
+  companyName: string;
+  companyType: CompanyType;
   name: string;
   email: string;
   role: UserRole;
