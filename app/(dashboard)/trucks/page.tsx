@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
+import { LocationMap } from "@/components/map";
 import { createClient } from "@/lib/supabase/server";
+import { buildMapMarkers } from "@/lib/map-markers";
 import { truckStatusLabel, yen } from "@/lib/format";
 import type { TruckStatus } from "@/types/database";
 
@@ -12,6 +14,8 @@ type TruckRow = {
   skills: string[];
   desired_daily_price: number | null;
   base_address: string | null;
+  base_lat: number | null;
+  base_lng: number | null;
   status: TruckStatus;
   companies: { name: string } | null;
 };
@@ -21,11 +25,12 @@ export default async function TrucksPage() {
   const { data } = await supabase
     .from("trucks")
     .select(
-      "id, truck_code, plate_number, truck_type, skills, desired_daily_price, base_address, status, companies(name)",
+      "id, truck_code, plate_number, truck_type, skills, desired_daily_price, base_address, base_lat, base_lng, status, companies(name)",
     )
     .order("truck_code");
 
   const trucks = (data ?? []) as TruckRow[];
+  const mapMarkers = buildMapMarkers([], trucks);
 
   return (
     <>
@@ -38,6 +43,19 @@ export default async function TrucksPage() {
           </Link>
         }
       />
+
+      {mapMarkers.length > 0 ? (
+        <section className="panel map-panel" style={{ marginBottom: 14 }}>
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Map</p>
+              <h3>ダンプ拠点マップ</h3>
+            </div>
+            <span className="count-pill">{mapMarkers.length}台</span>
+          </div>
+          <LocationMap markers={mapMarkers} />
+        </section>
+      ) : null}
 
       <section className="card-grid">
         {trucks.length === 0 ? (

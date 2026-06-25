@@ -517,6 +517,49 @@ button {
   opacity: 1;
 }
 
+.leaflet-map-canvas {
+  min-height: 430px;
+  height: 430px;
+  border-radius: 0 0 8px 8px;
+  z-index: 0;
+}
+
+.leaflet-map-canvas--loading {
+  display: grid;
+  place-items: center;
+  background: #edf3f4;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.map-panel .map-legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 10px 16px 14px;
+  border-top: 1px solid var(--line);
+}
+
+.map-legend-item {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.map-legend-item--site {
+  background: var(--green);
+}
+
+.map-legend-item--truck {
+  background: var(--blue);
+}
+
 .match-panel {
   min-height: 496px;
 }

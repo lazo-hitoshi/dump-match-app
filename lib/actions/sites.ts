@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getCurrentUserProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminRole } from "@/types/domain";
+import { geocodeAddress } from "@/lib/geocode";
 import { parseSkills } from "@/lib/format";
 import type { SiteStatus } from "@/types/database";
 
@@ -27,13 +28,18 @@ export async function createSite(formData: FormData) {
   const profile = await requireProfile();
   const supabase = await db();
 
+  const address = String(formData.get("address") ?? "");
+  const coords = await geocodeAddress(address);
+
   const payload = {
     company_id: isAdminRole(profile.role)
       ? String(formData.get("company_id") ?? profile.companyId)
       : profile.companyId,
     site_code: siteCode(),
     name: String(formData.get("name") ?? ""),
-    address: String(formData.get("address") ?? ""),
+    address,
+    lat: coords?.lat ?? null,
+    lng: coords?.lng ?? null,
     start_date: String(formData.get("start_date") ?? ""),
     end_date: String(formData.get("end_date") ?? ""),
     required_truck_count: Number(formData.get("required_truck_count") ?? 1),
@@ -58,9 +64,14 @@ export async function updateSite(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const supabase = await db();
 
+  const address = String(formData.get("address") ?? "");
+  const coords = await geocodeAddress(address);
+
   const payload = {
     name: String(formData.get("name") ?? ""),
-    address: String(formData.get("address") ?? ""),
+    address,
+    lat: coords?.lat ?? null,
+    lng: coords?.lng ?? null,
     start_date: String(formData.get("start_date") ?? ""),
     end_date: String(formData.get("end_date") ?? ""),
     required_truck_count: Number(formData.get("required_truck_count") ?? 1),

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
+import { LocationMap } from "@/components/map";
 import { createClient } from "@/lib/supabase/server";
+import { buildMapMarkers } from "@/lib/map-markers";
 import { dateLabel, yen } from "@/lib/format";
 import { openMaps, siteStatusLabel } from "@/types/domain";
 import type { SiteReservationSummaryRow, SiteStatus } from "@/types/database";
@@ -10,6 +12,8 @@ type SiteRow = {
   site_code: string;
   name: string;
   address: string;
+  lat: number | null;
+  lng: number | null;
   start_date: string;
   end_date: string;
   required_truck_count: number;
@@ -23,7 +27,7 @@ export default async function SitesPage() {
   const { data: sites } = await supabase
     .from("sites")
     .select(
-      "id, site_code, name, address, start_date, end_date, required_truck_count, daily_price, required_skills, status",
+      "id, site_code, name, address, lat, lng, start_date, end_date, required_truck_count, daily_price, required_skills, status",
     )
     .order("start_date", { ascending: false });
 
@@ -32,6 +36,7 @@ export default async function SitesPage() {
   const remainingMap = new Map(summaryRows.map((s) => [s.site_id, s.remaining_count]));
 
   const rows = (sites ?? []) as SiteRow[];
+  const mapMarkers = buildMapMarkers(rows, []);
 
   return (
     <>
@@ -44,6 +49,19 @@ export default async function SitesPage() {
           </Link>
         }
       />
+
+      {mapMarkers.length > 0 ? (
+        <section className="panel map-panel" style={{ marginBottom: 14 }}>
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Map</p>
+              <h3>現場マップ</h3>
+            </div>
+            <span className="count-pill">{mapMarkers.length}件</span>
+          </div>
+          <LocationMap markers={mapMarkers} />
+        </section>
+      ) : null}
 
       <section className="card-grid">
         {rows.length === 0 ? (

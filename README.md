@@ -27,6 +27,7 @@ copy .env.local.example .env.local
 |------|----------|
 | ① | `supabase/migrations/001_initial_schema.sql` |
 | ② | `supabase/migrations/002_audit_logs_insert_policy.sql` |
+| ③ | `supabase/migrations/003_backfill_coordinates.sql`（地図用座標） |
 
 4. Supabase Auth で管理者ユーザーを作成（例: `watanabe@hitoshi.cloud`）
 
@@ -79,7 +80,7 @@ npm run dev
 ## MVP 仮ルール
 
 - 予約承認: 管理者のみ
-- GPS: なし（Google Maps リンクのみ）
+- GPS: なし（OpenStreetMap で地図表示、住所から座標取得）
 - 請求・支払: 手動
 - ドライバー電話: 予約確定後のみ表示
 

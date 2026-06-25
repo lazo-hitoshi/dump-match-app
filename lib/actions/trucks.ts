@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getCurrentUserProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminRole } from "@/types/domain";
+import { geocodeAddress } from "@/lib/geocode";
 import { parseSkills } from "@/lib/format";
 import type { TruckStatus } from "@/types/database";
 
@@ -27,6 +28,9 @@ export async function createTruck(formData: FormData) {
   const profile = await requireProfile();
   const supabase = await db();
 
+  const baseAddress = String(formData.get("base_address") ?? "") || null;
+  const coords = baseAddress ? await geocodeAddress(baseAddress) : null;
+
   const payload = {
     company_id: isAdminRole(profile.role)
       ? String(formData.get("company_id") ?? profile.companyId)
@@ -35,7 +39,9 @@ export async function createTruck(formData: FormData) {
     plate_number: String(formData.get("plate_number") ?? ""),
     truck_type: String(formData.get("truck_type") ?? "大型ダンプ"),
     skills: parseSkills(String(formData.get("skills") ?? "")),
-    base_address: String(formData.get("base_address") ?? "") || null,
+    base_address: baseAddress,
+    base_lat: coords?.lat ?? null,
+    base_lng: coords?.lng ?? null,
     desired_daily_price: Number(formData.get("desired_daily_price") ?? 0) || null,
     status: String(formData.get("status") ?? "available") as TruckStatus,
   };
@@ -52,11 +58,16 @@ export async function updateTruck(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const supabase = await db();
 
+  const baseAddress = String(formData.get("base_address") ?? "") || null;
+  const coords = baseAddress ? await geocodeAddress(baseAddress) : null;
+
   const payload = {
     plate_number: String(formData.get("plate_number") ?? ""),
     truck_type: String(formData.get("truck_type") ?? ""),
     skills: parseSkills(String(formData.get("skills") ?? "")),
-    base_address: String(formData.get("base_address") ?? "") || null,
+    base_address: baseAddress,
+    base_lat: coords?.lat ?? null,
+    base_lng: coords?.lng ?? null,
     desired_daily_price: Number(formData.get("desired_daily_price") ?? 0) || null,
     status: String(formData.get("status") ?? "available") as TruckStatus,
   };

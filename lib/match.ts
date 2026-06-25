@@ -16,11 +16,13 @@ export type MatchCandidateView = {
   skills: string[];
 };
 
-type SiteRow = {
+export type SiteRow = {
   id: string;
   site_code: string;
   name: string;
   address: string;
+  lat?: number | null;
+  lng?: number | null;
   start_date: string;
   end_date: string;
   daily_price: number;
@@ -28,13 +30,16 @@ type SiteRow = {
   status: string;
 };
 
-type TruckRow = {
+export type TruckRow = {
   id: string;
   truck_code: string;
+  base_address?: string | null;
+  base_lat?: number | null;
+  base_lng?: number | null;
   skills: string[];
   desired_daily_price: number | null;
   status: string;
-  company?: { name: string } | null;
+  companies?: { name: string } | null;
 };
 
 type AvailabilityRow = {
@@ -96,7 +101,7 @@ export function buildMatchCandidates(
         siteCode: site.site_code,
         truckId: truck.id,
         truckCode: truck.truck_code,
-        companyName: truck.company?.name ?? "",
+        companyName: truck.companies?.name ?? "",
         score: matchScore(site, truck, priceDiff),
         priceDiff,
         dailyPrice: site.daily_price,
