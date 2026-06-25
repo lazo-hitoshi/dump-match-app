@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DumpLink | ダンプ・現場マッチング</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" role="img">
+              <path d="M4 19h15.7l2.2-6.2h3.9l2.2 6.2h1.9v5.1h-3a3.7 3.7 0 0 1-7.2 0H12a3.7 3.7 0 0 1-7.2 0H3V21c0-1.1.9-2 2-2Z" />
+              <path d="M5.6 11.2h9.8c1.1 0 1.9.8 1.9 1.9V19H3.7v-6c0-1 .8-1.8 1.9-1.8Z" />
+              <circle cx="8.4" cy="24.1" r="1.7" />
+              <circle cx="23.3" cy="24.1" r="1.7" />
+            </svg>
+          </div>
+          <div>
+            <p class="eyebrow">DumpLink</p>
+            <h1>配車マッチング</h1>
+          </div>
+        </div>
+
+        <div class="role-switch" role="tablist" aria-label="表示モード">
+          <button class="role-tab is-active" data-role="admin" role="tab" aria-selected="true">管理者</button>
+          <button class="role-tab" data-role="site" role="tab" aria-selected="false">現場</button>
+          <button class="role-tab" data-role="truck" role="tab" aria-selected="false">ダンプ</button>
+        </div>
+
+        <nav class="nav-stack" aria-label="主要画面">
+          <a href="#dashboard" class="nav-link is-active" data-section-link="dashboard">
+            <span class="nav-icon" aria-hidden="true">◆</span>
+            ダッシュボード
+          </a>
+          <a href="#sites" class="nav-link" data-section-link="sites">
+            <span class="nav-icon" aria-hidden="true">●</span>
+            現場
+          </a>
+          <a href="#trucks" class="nav-link" data-section-link="trucks">
+            <span class="nav-icon" aria-hidden="true">■</span>
+            ダンプ
+          </a>
+          <a href="#admin" class="nav-link" data-section-link="admin">
+            <span class="nav-icon" aria-hidden="true">▲</span>
+            管理
+          </a>
+        </nav>
+
+        <div class="sidebar-note">
+          <span class="note-label">本日</span>
+          <strong id="todayLabel">2026/06/24</strong>
+          <span id="todayDispatch">0件の配車予定</span>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow" id="roleCaption">管理者ビュー</p>
+            <h2 id="pageTitle">現場と空きダンプをすばやく合わせる</h2>
+          </div>
+          <div class="topbar-actions">
+            <button class="icon-button" id="resetDemo" type="button" title="初期データに戻す" aria-label="初期データに戻す">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 12a8 8 0 1 0 2.3-5.7L4 8.6" />
+                <path d="M4 4v4.6h4.6" />
+              </svg>
+            </button>
+            <button class="primary-action" type="button" data-open-panel="site">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 5v14" />
+                <path d="M5 12h14" />
+              </svg>
+              現場追加
+            </button>
+            <button class="secondary-action" type="button" data-open-panel="truck">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 5v14" />
+                <path d="M5 12h14" />
+              </svg>
+              ダンプ登録
+            </button>
+          </div>
+        </header>
+
+        <section class="quick-stats" id="dashboard" aria-label="稼働状況">
+          <article class="stat-tile">
+            <span class="stat-label">募集中の現場</span>
+            <strong id="statOpenSites">0</strong>
+            <small>残台数あり</small>
+          </article>
+          <article class="stat-tile">
+            <span class="stat-label">空きダンプ</span>
+            <strong id="statOpenTrucks">0</strong>
+            <small>予約可能</small>
+          </article>
+          <article class="stat-tile">
+            <span class="stat-label">予約済み</span>
+            <strong id="statBooked">0</strong>
+            <small>確定車両</small>
+          </article>
+          <article class="stat-tile accent">
+            <span class="stat-label">不足台数</span>
+            <strong id="statShortage">0</strong>
+            <small>要確認</small>
+          </article>
+        </section>
+
+        <section class="control-strip" aria-label="検索条件">
+          <label class="search-box">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m21 21-4.3-4.3" />
+              <circle cx="11" cy="11" r="7" />
+            </svg>
+            <input id="searchInput" type="search" placeholder="現場名・住所・会社名" />
+          </label>
+          <label class="field">
+            <span>スキル</span>
+            <select id="skillFilter">
+              <option value="all">すべて</option>
+              <option value="大型">大型</option>
+              <option value="小型">小型</option>
+              <option value="深ダンプ">深ダンプ</option>
+              <option value="夜間">夜間</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>日付</span>
+            <input id="dateFilter" type="date" value="2026-06-24" />
+          </label>
+          <label class="toggle">
+            <input id="onlyAvailable" type="checkbox" checked />
+            <span>空きのみ</span>
+          </label>
+        </section>
+
+        <div class="workspace-grid">
+          <section class="panel map-panel" aria-label="地図">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Map</p>
+                <h3>現場・ダンプ位置</h3>
+              </div>
+              <button class="ghost-button" id="fitMap" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 9V4h5" />
+                  <path d="M20 9V4h-5" />
+                  <path d="M4 15v5h5" />
+                  <path d="M20 15v5h-5" />
+                </svg>
+                全体
+              </button>
+            </div>
+            <div class="map-canvas" id="mapCanvas" aria-label="簡易マップ"></div>
+          </section>
+
+          <section class="panel match-panel" aria-label="おすすめマッチ">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Matching</p>
+                <h3>おすすめ候補</h3>
+              </div>
+              <span class="count-pill" id="matchCount">0件</span>
+            </div>
+            <div class="match-list" id="matchList"></div>
+          </section>
+        </div>
+
+        <section class="panel" id="sites" aria-label="現場一覧">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Sites</p>
+              <h3>現場一覧</h3>
+            </div>
+            <div class="segmented" aria-label="現場表示">
+              <button class="segment is-active" data-site-status="all" type="button">全件</button>
+              <button class="segment" data-site-status="open" type="button">募集中</button>
+              <button class="segment" data-site-status="filled" type="button">充足</button>
+            </div>
+          </div>
+          <div class="card-grid" id="siteCards"></div>
+        </section>
+
+        <section class="panel" id="trucks" aria-label="ダンプ一覧">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Trucks</p>
+              <h3>ダンプ一覧</h3>
+            </div>
+            <div class="view-tabs" role="tablist" aria-label="ダンプ表示">
+              <button class="view-tab is-active" data-truck-view="cards" type="button">カード</button>
+              <button class="view-tab" data-truck-view="board" type="button">ボード</button>
+            </div>
+          </div>
+          <div class="card-grid" id="truckCards"></div>
+          <div class="kanban is-hidden" id="truckBoard"></div>
+        </section>
+
+        <section class="panel admin-panel" id="admin" aria-label="管理者テーブル">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Admin</p>
+              <h3>予約・台数管理</h3>
+            </div>
+            <button class="ghost-button" id="exportJson" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3v12" />
+                <path d="m7 10 5 5 5-5" />
+                <path d="M5 21h14" />
+              </svg>
+              JSON
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>現場ID</th>
+                  <th>現場名</th>
+                  <th>必要</th>
+                  <th>予約</th>
+                  <th>残り</th>
+                  <th>金額</th>
+                  <th>担当ダンプ</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="adminRows"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="drawer-backdrop" id="drawerBackdrop" hidden></div>
+    <aside class="drawer" id="entryDrawer" aria-hidden="true" aria-labelledby="drawerTitle">
+      <div class="drawer-header">
+        <div>
+          <p class="eyebrow" id="drawerCaption">New</p>
+          <h3 id="drawerTitle">登録</h3>
+        </div>
+        <button class="icon-button" id="closeDrawer" type="button" title="閉じる" aria-label="閉じる">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12" />
+            <path d="M18 6 6 18" />
+          </svg>
+        </button>
+      </div>
+
+      <form id="entryForm" class="entry-form">
+        <input type="hidden" id="entryType" value="site" />
+        <div class="form-grid" id="siteFields">
+          <label>
+            <span>現場名</span>
+            <input id="siteName" required value="湾岸資材搬入" />
+          </label>
+          <label>
+            <span>住所</span>
+            <input id="siteAddress" required value="東京都江東区有明3丁目" />
+          </label>
+          <label>
+            <span>使用開始</span>
+            <input id="siteStart" type="date" required value="2026-06-24" />
+          </label>
+          <label>
+            <span>使用終了</span>
+            <input id="siteEnd" type="date" required value="2026-06-25" />
+          </label>
+          <label>
+            <span>必要台数</span>
+            <input id="siteNeeded" type="number" min="1" required value="4" />
+          </label>
+          <label>
+            <span>金額</span>
+            <input id="siteAmount" type="number" min="0" step="1000" required value="52000" />
+          </label>
+          <label class="full">
+            <span>必要スキル</span>
+            <select id="siteSkill" multiple size="4">
+              <option selected>大型</option>
+              <option>小型</option>
+              <option>深ダンプ</option>
+              <option>夜間</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="form-grid is-hidden" id="truckFields">
+          <label>
+            <span>会社名</span>
+            <input id="truckCompany" required value="佐藤運送" />
+          </label>
+          <label>
+            <span>ドライバー</span>
+            <input id="truckDriver" required value="佐藤 健" />
+          </label>
+          <label>
+            <span>空き開始</span>
+            <input id="truckStart" type="date" required value="2026-06-24" />
+          </label>
+          <label>
+            <span>空き終了</span>
+            <input id="truckEnd" type="date" required value="2026-06-26" />
+          </label>
+          <label>
+            <span>希望金額</span>
+            <input id="truckAmount" type="number" min="0" step="1000" required value="48000" />
+          </label>
+          <label>
+            <span>所在地</span>
+            <input id="truckAddress" required value="東京都大田区平和島" />
+          </label>
+          <label class="full">
+            <span>スキル</span>
+            <select id="truckSkill" multiple size="4">
+              <option selected>大型</option>
+              <option>小型</option>
+              <option>深ダンプ</option>
+              <option>夜間</option>
+            </select>
+          </label>
+        </div>
+
+        <button class="primary-action full-width" type="submit" id="drawerSubmit">登録する</button>
+      </form>
+    </aside>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
