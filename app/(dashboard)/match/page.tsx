@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/layout/page-header";
-import { LocationMap } from "@/components/map";
+import { LocationMap } from "@/components/map/location-map-dynamic";
 import { requestReservation } from "@/lib/actions/reservations";
 import { buildMatchCandidates, type SiteRow, type TruckRow } from "@/lib/match";
 import { buildMapMarkers } from "@/lib/map-markers";

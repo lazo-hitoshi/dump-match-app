@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
-import { LocationMap } from "@/components/map";
+import { LocationMap } from "@/components/map/location-map-dynamic";
 import { createClient } from "@/lib/supabase/server";
 import { buildMapMarkers } from "@/lib/map-markers";
 import { dateLabel, yen } from "@/lib/format";
