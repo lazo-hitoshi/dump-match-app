@@ -2,13 +2,14 @@
 
 import { useEffect, useRef } from "react";
 import L from "leaflet";
-import type { MapMarker } from "@/types/map";
+import type { MapMarker, MapViewport } from "@/types/map";
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from "@/types/map";
 import "leaflet/dist/leaflet.css";
 
 type LocationMapProps = {
   markers: MapMarker[];
   className?: string;
+  viewport?: MapViewport | null;
 };
 
 function markerIcon(kind: MapMarker["kind"], selected: boolean): L.DivIcon {
@@ -22,17 +23,20 @@ function markerIcon(kind: MapMarker["kind"], selected: boolean): L.DivIcon {
   });
 }
 
-export function LocationMap({ markers, className }: LocationMapProps) {
+export function LocationMap({ markers, className, viewport }: LocationMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
+  const circleRef = useRef<L.Circle | null>(null);
+  const initialCenter = viewport?.center ?? DEFAULT_MAP_CENTER;
+  const initialZoom = viewport?.zoom ?? DEFAULT_MAP_ZOOM;
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
     const map = L.map(containerRef.current, {
       scrollWheelZoom: true,
-    }).setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM);
+    }).setView(initialCenter, initialZoom);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
@@ -46,8 +50,29 @@ export function LocationMap({ markers, className }: LocationMapProps) {
       map.remove();
       mapRef.current = null;
       layerRef.current = null;
+      circleRef.current = null;
     };
-  }, []);
+  }, [initialCenter, initialZoom]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (circleRef.current) {
+      circleRef.current.remove();
+      circleRef.current = null;
+    }
+
+    if (viewport?.radiusKm && viewport.center) {
+      circleRef.current = L.circle(viewport.center, {
+        radius: viewport.radiusKm * 1000,
+        color: "#3978b8",
+        weight: 2,
+        fillColor: "#3978b8",
+        fillOpacity: 0.08,
+      }).addTo(map);
+    }
+  }, [viewport]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -79,11 +104,11 @@ export function LocationMap({ markers, className }: LocationMapProps) {
     }
 
     if (markers.length === 1) {
-      map.setView(bounds.getCenter(), 13);
+      map.setView(bounds.getCenter(), viewport?.zoom ?? 13);
     } else {
-      map.fitBounds(bounds.pad(0.15), { maxZoom: 13 });
+      map.fitBounds(bounds.pad(0.15), { maxZoom: viewport?.zoom ?? 13 });
     }
-  }, [markers]);
+  }, [markers, viewport?.zoom]);
 
   return (
     <div

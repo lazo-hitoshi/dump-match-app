@@ -2,6 +2,13 @@ import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import { getAppPersona } from "@/lib/auth/persona";
 import { getCurrentUserProfile } from "@/lib/auth/session";
+import { getCompanyGeoAnchors } from "@/lib/geo-reference";
+import {
+  attachDistance,
+  DEFAULT_RADIUS_KM,
+  filterWithinRadius,
+  toGeoPoint,
+} from "@/lib/geo";
 import { createClient } from "@/lib/supabase/server";
 import type { SiteReservationSummaryRow } from "@/types/database";
 
@@ -91,13 +98,58 @@ async function getTruckCompanyStats(companyId: string) {
   };
 }
 
+async function getNearbyAvailableTrucks(companyId: string, radiusKm: number) {
+  const supabase = await createClient();
+  const anchors = await getCompanyGeoAnchors(supabase, companyId, "site");
+  const { data } = await supabase
+    .from("trucks")
+    .select("base_lat, base_lng")
+    .eq("status", "available");
+  if (anchors.length === 0) return { count: (data ?? []).length, radiusKm, hasAnchors: false };
+  const withDistance = attachDistance(data ?? [], anchors, (truck) =>
+    toGeoPoint(
+      (truck as { base_lat: number | null }).base_lat,
+      (truck as { base_lng: number | null }).base_lng,
+    ),
+  );
+  return {
+    count: filterWithinRadius(withDistance, radiusKm).length,
+    radiusKm,
+    hasAnchors: true,
+  };
+}
+
+async function getNearbyOpenSites(companyId: string, radiusKm: number) {
+  const supabase = await createClient();
+  const anchors = await getCompanyGeoAnchors(supabase, companyId, "truck");
+  const { data } = await supabase
+    .from("sites")
+    .select("lat, lng")
+    .eq("status", "open");
+  if (anchors.length === 0) return { count: (data ?? []).length, radiusKm, hasAnchors: false };
+  const withDistance = attachDistance(data ?? [], anchors, (site) =>
+    toGeoPoint(
+      (site as { lat: number | null }).lat,
+      (site as { lng: number | null }).lng,
+    ),
+  );
+  return {
+    count: filterWithinRadius(withDistance, radiusKm).length,
+    radiusKm,
+    hasAnchors: true,
+  };
+}
+
 export default async function DashboardPage() {
   const profile = await getCurrentUserProfile();
   const persona = getAppPersona(profile);
   const today = new Date().toLocaleDateString("ja-JP");
 
   if (persona === "site" && profile) {
-    const stats = await getSiteCompanyStats(profile.companyId);
+    const [stats, nearby] = await Promise.all([
+      getSiteCompanyStats(profile.companyId),
+      getNearbyAvailableTrucks(profile.companyId, DEFAULT_RADIUS_KM),
+    ]);
     return (
       <>
         <PageHeader
@@ -120,10 +172,21 @@ export default async function DashboardPage() {
             <strong>{stats.pendingOnMySites}</strong>
             <small>自社現場への申請</small>
           </article>
-          <article className="stat-tile accent">
+          <article className="stat-tile">
             <span className="stat-label">不足台数合計</span>
             <strong>{stats.shortage}</strong>
             <small>自社現場の残枠</small>
+          </article>
+          <article className="stat-tile accent">
+            <span className="stat-label">近くの空きダンプ</span>
+            <strong>{nearby.count}</strong>
+            <small>
+              {nearby.hasAnchors ? (
+                <Link href="/trucks">半径 {nearby.radiusKm} km 以内</Link>
+              ) : (
+                "現場登録後に距離表示"
+              )}
+            </small>
           </article>
         </section>
         <section className="panel" style={{ padding: 20 }}>
@@ -131,6 +194,9 @@ export default async function DashboardPage() {
           <div className="card-actions" style={{ justifyContent: "flex-start" }}>
             <Link href="/sites" className="small-button primary">
               自社の現場一覧
+            </Link>
+            <Link href="/trucks" className="small-button">
+              近くのダンプ
             </Link>
             <Link href="/reservations" className="small-button">
               予約状況
@@ -145,7 +211,10 @@ export default async function DashboardPage() {
   }
 
   if (persona === "truck" && profile) {
-    const stats = await getTruckCompanyStats(profile.companyId);
+    const [stats, nearby] = await Promise.all([
+      getTruckCompanyStats(profile.companyId),
+      getNearbyOpenSites(profile.companyId, DEFAULT_RADIUS_KM),
+    ]);
     return (
       <>
         <PageHeader
@@ -176,9 +245,15 @@ export default async function DashboardPage() {
             </small>
           </article>
           <article className="stat-tile accent">
-            <span className="stat-label">募集中の現場</span>
-            <strong>{stats.openSites}</strong>
-            <small>マッチ可能な現場</small>
+            <span className="stat-label">近くの募集中現場</span>
+            <strong>{nearby.count}</strong>
+            <small>
+              {nearby.hasAnchors ? (
+                <Link href="/sites">半径 {nearby.radiusKm} km 以内</Link>
+              ) : (
+                "ダンプ登録後に距離表示"
+              )}
+            </small>
           </article>
         </section>
         <section className="panel" style={{ padding: 20 }}>

@@ -6,6 +6,8 @@ import {
   toggleAvailability,
   updateTruck,
 } from "@/lib/actions/trucks";
+import { getAppPersona } from "@/lib/auth/persona";
+import { getCurrentUserProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { dateLabel, truckStatusLabel, yen } from "@/lib/format";
 import type { TruckStatus } from "@/types/database";
@@ -33,6 +35,9 @@ type AvailabilityRow = {
 
 export default async function TruckDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const profile = await getCurrentUserProfile();
+  const persona = getAppPersona(profile);
+  const canManage = persona === "admin" || persona === "truck";
   const supabase = await createClient();
   const { data } = await supabase
     .from("trucks")
@@ -67,9 +72,12 @@ export default async function TruckDetailPage({ params }: { params: Promise<{ id
           <p>スキル: {(truck.skills ?? []).join("、")}</p>
           <p>状態: {truckStatusLabel(truck.status)}</p>
           {truck.desired_daily_price ? <p>希望単価: {yen(truck.desired_daily_price)}</p> : null}
+          {truck.base_address ? <p>待機場所: {truck.base_address}</p> : null}
 
-          <h3>車両編集</h3>
-          <form action={updateTruck} className="entry-form" style={{ paddingTop: 0 }}>
+          {canManage ? (
+            <>
+              <h3>車両編集</h3>
+              <form action={updateTruck} className="entry-form" style={{ paddingTop: 0 }}>
             <input type="hidden" name="id" value={truck.id} />
             <label className="full">
               車両番号
@@ -108,12 +116,17 @@ export default async function TruckDetailPage({ params }: { params: Promise<{ id
               更新
             </button>
           </form>
+            </>
+          ) : null}
         </article>
 
         <article className="panel match-panel" style={{ padding: 20 }}>
           <h3 style={{ marginTop: 0 }}>空き予定</h3>
           <div className="match-list" style={{ maxHeight: "none", padding: 0 }}>
-            {rows.map((row) => (
+            {rows.length === 0 ? (
+              <p className="mini-text">空き予定はまだ登録されていません。</p>
+            ) : (
+              rows.map((row) => (
               <div key={row.id} className="match-item">
                 <div className="match-title">
                   <strong>
@@ -121,6 +134,7 @@ export default async function TruckDetailPage({ params }: { params: Promise<{ id
                   </strong>
                   <span>{row.area_note ?? "エリア未設定"}</span>
                 </div>
+                {canManage ? (
                 <div className="match-actions">
                   <form action={toggleAvailability}>
                     <input type="hidden" name="id" value={row.id} />
@@ -131,10 +145,14 @@ export default async function TruckDetailPage({ params }: { params: Promise<{ id
                     </button>
                   </form>
                 </div>
+                ) : null}
               </div>
-            ))}
+            ))
+            )}
           </div>
 
+          {canManage ? (
+            <>
           <h3>空き予定を追加</h3>
           <form action={createAvailability} className="entry-form" style={{ paddingTop: 0 }}>
             <input type="hidden" name="truck_id" value={truck.id} />
@@ -156,6 +174,8 @@ export default async function TruckDetailPage({ params }: { params: Promise<{ id
               空き予定を登録
             </button>
           </form>
+            </>
+          ) : null}
         </article>
       </section>
     </>

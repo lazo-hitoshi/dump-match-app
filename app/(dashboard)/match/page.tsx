@@ -1,20 +1,36 @@
+import { Suspense } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { LocationMap } from "@/components/map/location-map-dynamic";
+import { RadiusFilter } from "@/components/map/radius-filter";
 import { getAppPersona } from "@/lib/auth/persona";
 import { getCurrentUserProfile } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { requestReservation } from "@/lib/actions/reservations";
 import { buildMatchCandidates, type SiteRow, type TruckRow } from "@/lib/match";
 import { buildMapMarkers } from "@/lib/map-markers";
+import { getCompanyGeoAnchors, getMapCenterFromAnchors } from "@/lib/geo-reference";
+import { formatDistanceKm, parseRadiusKm } from "@/lib/geo";
 import { createClient } from "@/lib/supabase/server";
 import { dateLabel, yen } from "@/lib/format";
+import type { MapViewport } from "@/types/map";
 
-export default async function MatchPage() {
+export default async function MatchPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ radius?: string }>;
+}) {
+  const { radius: radiusParam } = await searchParams;
+  const radiusKm = parseRadiusKm(radiusParam);
   const profile = await getCurrentUserProfile();
   const persona = getAppPersona(profile);
   if (persona === "site") redirect("/dashboard");
 
   const supabase = await createClient();
+  const anchors =
+    profile && persona === "truck"
+      ? await getCompanyGeoAnchors(supabase, profile.companyId, persona)
+      : [];
+  const useNearbyFilter = persona === "truck" && anchors.length > 0;
 
   const [{ data: sites }, { data: trucks }, { data: availabilities }, { data: summaries }] =
     await Promise.all([
@@ -45,26 +61,40 @@ export default async function MatchPage() {
     truckRows,
     (availabilities ?? []) as Parameters<typeof buildMatchCandidates>[2],
     (summaries ?? []) as Parameters<typeof buildMatchCandidates>[3],
+    useNearbyFilter ? { maxDistanceKm: radiusKm } : undefined,
   );
 
+  const candidateSiteIds = new Set(candidates.map((c) => c.siteId));
+  const candidateTruckIds = new Set(candidates.map((c) => c.truckId));
+
   const mapMarkers = buildMapMarkers(
-    siteRows.map((s) => ({
-      id: s.id,
-      name: s.name,
-      site_code: s.site_code,
-      address: s.address,
-      lat: s.lat ?? null,
-      lng: s.lng ?? null,
-    })),
-    truckRows.map((t) => ({
-      id: t.id,
-      truck_code: t.truck_code,
-      base_address: t.base_address ?? null,
-      base_lat: t.base_lat ?? null,
-      base_lng: t.base_lng ?? null,
-      companies: t.companies ?? null,
-    })),
+    siteRows
+      .filter((s) => candidateSiteIds.has(s.id))
+      .map((s) => ({
+        id: s.id,
+        name: s.name,
+        site_code: s.site_code,
+        address: s.address,
+        lat: s.lat ?? null,
+        lng: s.lng ?? null,
+      })),
+    truckRows
+      .filter((t) => candidateTruckIds.has(t.id))
+      .map((t) => ({
+        id: t.id,
+        truck_code: t.truck_code,
+        base_address: t.base_address ?? null,
+        base_lat: t.base_lat ?? null,
+        base_lng: t.base_lng ?? null,
+        companies: t.companies ?? null,
+      })),
   );
+
+  const mapCenter = getMapCenterFromAnchors(anchors);
+  const viewport: MapViewport | null =
+    mapCenter && useNearbyFilter
+      ? { center: [mapCenter.lat, mapCenter.lng], radiusKm, zoom: 10 }
+      : null;
 
   return (
     <>
@@ -72,6 +102,12 @@ export default async function MatchPage() {
         eyebrow={persona === "truck" ? "ダンプ会社ポータル" : "マッチング"}
         title="条件に合う候補を探す"
       />
+
+      {useNearbyFilter ? (
+        <Suspense fallback={null}>
+          <RadiusFilter label="マッチ候補の表示半径" />
+        </Suspense>
+      ) : null}
 
       <section className="workspace-grid">
         <section className="panel map-panel">
@@ -83,10 +119,10 @@ export default async function MatchPage() {
             <span className="count-pill">{mapMarkers.length}件</span>
           </div>
           {mapMarkers.length > 0 ? (
-            <LocationMap markers={mapMarkers} />
+            <LocationMap markers={mapMarkers} viewport={viewport} />
           ) : (
             <p className="mini-text" style={{ padding: 16 }}>
-              地図に表示できる座標がありません。Supabase で `003_backfill_coordinates.sql` を実行するか、住所を更新してください。
+              地図に表示できる候補がありません。半径を広げるか、座標データを確認してください。
             </p>
           )}
           <p className="mini-text map-legend">
@@ -103,7 +139,9 @@ export default async function MatchPage() {
           <div className="match-list">
             {candidates.length === 0 ? (
               <p className="mini-text" style={{ padding: 12 }}>
-                条件に合う候補はありません
+                {useNearbyFilter
+                  ? `半径 ${radiusKm} km 以内に条件に合う候補はありません。出稼ぎ対応の場合は半径を広げてください。`
+                  : "条件に合う候補はありません"}
               </p>
             ) : (
               candidates.slice(0, 20).map((item) => (
@@ -119,6 +157,9 @@ export default async function MatchPage() {
                   </div>
                   <div className="match-meta">
                     <span className="skill-pill">{item.skills.join("・")}</span>
+                    {item.distanceKm != null ? (
+                      <span className="distance-pill">{formatDistanceKm(item.distanceKm)}</span>
+                    ) : null}
                     <span className="mini-text">
                       {dateLabel(item.startDate)} - {dateLabel(item.endDate)}
                     </span>

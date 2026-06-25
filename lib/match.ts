@@ -1,4 +1,5 @@
 import { skillsMatch } from "@/types/domain";
+import { distanceScoreBonus, haversineKm, toGeoPoint } from "@/lib/geo";
 
 export type MatchCandidateView = {
   siteId: string;
@@ -14,6 +15,7 @@ export type MatchCandidateView = {
   startDate: string;
   endDate: string;
   skills: string[];
+  distanceKm: number | null;
 };
 
 export type SiteRow = {
@@ -58,12 +60,20 @@ function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: string): b
   return aStart <= bEnd && aEnd >= bStart;
 }
 
-function matchScore(site: SiteRow, truck: TruckRow, priceDiff: number): number {
+function matchScore(site: SiteRow, truck: TruckRow, priceDiff: number, distanceKm: number | null): number {
   let score = 42;
   score += 24;
   if (priceDiff >= 0) score += 18;
   score += Math.max(0, 16 - Math.min(16, Math.abs(priceDiff) / 1000));
+  if (distanceKm != null) score += distanceScoreBonus(distanceKm);
   return Math.min(99, score);
+}
+
+function siteTruckDistanceKm(site: SiteRow, truck: TruckRow): number | null {
+  const sitePoint = toGeoPoint(site.lat, site.lng);
+  const truckPoint = toGeoPoint(truck.base_lat, truck.base_lng);
+  if (!sitePoint || !truckPoint) return null;
+  return haversineKm(sitePoint, truckPoint);
 }
 
 export function buildMatchCandidates(
@@ -71,6 +81,7 @@ export function buildMatchCandidates(
   trucks: TruckRow[],
   availabilities: AvailabilityRow[],
   summaries: SummaryRow[],
+  options?: { maxDistanceKm?: number },
 ): MatchCandidateView[] {
   const remainingBySite = new Map(summaries.map((s) => [s.site_id, s.remaining_count ?? 0]));
   const availByTruck = availabilities.filter((a) => a.is_active);
@@ -94,6 +105,11 @@ export function buildMatchCandidates(
 
       const desired = truck.desired_daily_price ?? site.daily_price;
       const priceDiff = site.daily_price - desired;
+      const distanceKm = siteTruckDistanceKm(site, truck);
+
+      if (options?.maxDistanceKm != null) {
+        if (distanceKm == null || distanceKm > options.maxDistanceKm) continue;
+      }
 
       candidates.push({
         siteId: site.id,
@@ -102,13 +118,14 @@ export function buildMatchCandidates(
         truckId: truck.id,
         truckCode: truck.truck_code,
         companyName: truck.companies?.name ?? "",
-        score: matchScore(site, truck, priceDiff),
+        score: matchScore(site, truck, priceDiff, distanceKm),
         priceDiff,
         dailyPrice: site.daily_price,
         desiredPrice: truck.desired_daily_price,
         startDate: site.start_date,
         endDate: site.end_date,
         skills: site.required_skills ?? [],
+        distanceKm,
       });
     }
   }

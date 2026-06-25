@@ -447,7 +447,8 @@ button {
 
 .count-pill,
 .status-pill,
-.skill-pill {
+.skill-pill,
+.distance-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -458,6 +459,62 @@ button {
   color: #3c4b51;
   font-size: 12px;
   font-weight: 800;
+}
+
+.distance-pill {
+  background: #e8f0fa;
+  color: #2a5f94;
+}
+
+.card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.radius-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.radius-filter__label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.radius-filter__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.radius-filter__pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.radius-filter__pill.is-active {
+  border-color: #3978b8;
+  background: #e8f0fa;
+  color: #2a5f94;
 }
 
 .status-pill.open {

@@ -24,6 +24,7 @@ const ADMIN_NAV: NavItem[] = [
 const SITE_NAV: NavItem[] = [
   { href: "/dashboard", label: "ホーム", icon: "◆" },
   { href: "/sites", label: "自社の現場", icon: "●" },
+  { href: "/trucks", label: "近くのダンプ", icon: "■" },
   { href: "/reservations", label: "予約状況", icon: "▼" },
   { href: "/notifications", label: "通知", icon: "◎" },
 ];
@@ -66,7 +67,8 @@ export function canAccessPath(persona: AppPersona, pathname: string): boolean {
   if (persona === "admin") return true;
 
   if (persona === "site") {
-    const blocked = ["/trucks", "/match", "/companies", "/audit-logs"];
+    const blocked = ["/match", "/companies", "/audit-logs"];
+    if (pathname === "/trucks/new" || pathname.startsWith("/trucks/new/")) return false;
     return !blocked.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
   }
 

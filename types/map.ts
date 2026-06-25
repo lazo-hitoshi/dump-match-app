@@ -12,3 +12,9 @@ export type MapMarker = {
 
 export const DEFAULT_MAP_CENTER: [number, number] = [35.68, 139.76];
 export const DEFAULT_MAP_ZOOM = 10;
+
+export type MapViewport = {
+  center: [number, number];
+  zoom?: number;
+  radiusKm?: number;
+};
